@@ -1,13 +1,13 @@
-# 🌟 BabyOrbit - Your Parenting Universe, Organized
+# BabyOrbit - Your Parenting Universe, Organized
 
 AI-powered multi-agent parenting companion built with **Google ADK** and **Gemini AI**.
-From bump to baby — evidence-based guidance at your fingertips.
+From bump to baby - evidence-based guidance at your fingertips.
 
-## 🚀 Live Demo
+## Live Demo
 - **Frontend**: https://babyorbit-web-1091443480665.us-east4.run.app
 - **Backend API**: https://babyorbit-api-1091443480665.us-east4.run.app
 
-## 🧠 What It Does
+## What It Does
 BabyOrbit uses 5 specialized AI agents orchestrated by a coordinator:
 
 | Agent | Responsibility |
@@ -19,7 +19,7 @@ BabyOrbit uses 5 specialized AI agents orchestrated by a coordinator:
 | **Mother Wellness** | Postpartum recovery, breastfeeding, mental health |
 | **Myth Buster** | Debunks parenting myths with WHO/AAP/CDC evidence |
 
-## 🏗️ Architecture
+## Architecture
 
 ~~~
 User -> React Frontend -> nginx -> ADK Backend (Cloud Run)
@@ -30,14 +30,14 @@ User -> React Frontend -> nginx -> ADK Backend (Cloud Run)
                         Care    Tracker   Guide    Wellness Buster
 ~~~
 
-## 🛠️ Tech Stack
+## Tech Stack
 - **Backend**: Python, Google Agent Development Kit (ADK), Gemini 2.5 Flash
 - **Frontend**: React, Vite, TailwindCSS, Lucide Icons
 - **Deployment**: Google Cloud Run (serverless)
 - **AI Model**: Google Gemini via Vertex AI
 - **Data Sources**: WHO, IAP 2024, CDC Act Early, AAP
 
-## 📁 Project Structure
+## Project Structure
 
 ~~~
 babyorbit/
@@ -71,7 +71,7 @@ babyorbit/
 └── README.md
 ~~~
 
-## 🏃 Run Locally
+## Run Locally
 
 ### Backend
 ~~~bash
@@ -87,7 +87,7 @@ npm install
 npm run dev
 ~~~
 
-## 🔑 Environment Variables
+## Environment Variables
 Create orbit_coordinator/.env:
 ~~~
 GOOGLE_GENAI_USE_VERTEXAI=TRUE
@@ -96,7 +96,7 @@ GOOGLE_CLOUD_LOCATION=us-east4
 MODEL=gemini-2.5-flash
 ~~~
 
-## 📊 Key Features
+## Key Features
 - **Multi-Agent Routing**: Intelligent request routing to specialist agents
 - **Evidence-Based**: All guidance cites WHO, AAP, CDC, IAP sources
 - **Vaccination Tracking**: Complete schedule with overdue/due/upcoming tracking
@@ -105,8 +105,9 @@ MODEL=gemini-2.5-flash
 - **Health Logging**: Track feeding, sleep, diapers, symptoms
 - **Appointment Scheduling**: Book and manage medical appointments
 
-## 👤 Author
-**Jose Jaimol** - [GitHub](https://github.com/jaijoz)
+## Author
+**Jaimol Jaimol** - [GitHub](https://github.com/jaijoz)
 
-## 📄 License
-MIT
+## License
+Copyright 2026 Jose Jaimol. All rights reserved.
+This project and its source code are proprietary. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited.
