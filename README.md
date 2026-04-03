@@ -41,34 +41,16 @@ User -> React Frontend -> nginx -> ADK Backend (Cloud Run)
 
 ~~~
 babyorbit/
-├── orbit_coordinator/           # ADK Multi-Agent Backend
-│   ├── agent.py                 # Root coordinator agent
-│   ├── sub_agents/              # 5 specialist agents
-│   │   ├── newborn_care.py
-│   │   ├── vaccination_tracker.py
-│   │   ├── pregnancy_guide.py
-│   │   ├── mother_wellness.py
-│   │   └── myth_buster.py
-│   ├── tools/                   # Modular tool functions
-│   │   ├── baby_profile.py
-│   │   ├── vaccination.py
-│   │   ├── milestones.py
-│   │   ├── health_log.py
-│   │   ├── appointments.py
-│   │   └── checklist.py
-│   ├── store/                   # Data store abstraction
-│   │   └── memory_store.py
-│   └── data/                    # Seed data (WHO/IAP/CDC)
-│       └── seed_data.py
-├── frontend/                    # React + TailwindCSS
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── Landing.jsx
-│   │   │   └── Chat.jsx
-│   │   └── services/
-│   │       └── api.js
-│   └── vite.config.js
-└── README.md
++-- orbit_coordinator/           # ADK Multi-Agent Backend
+|   +-- agent.py                 # Root coordinator agent
+|   +-- sub_agents/              # 5 specialist agents
+|   +-- tools/                   # Modular tool functions
+|   +-- store/                   # Data store abstraction
+|   +-- data/                    # Seed data (WHO/IAP/CDC)
++-- frontend/                    # React + TailwindCSS
+|   +-- src/pages/               # Landing + Chat pages
+|   +-- src/services/            # API integration
++-- README.md
 ~~~
 
 ## Run Locally
@@ -106,8 +88,7 @@ MODEL=gemini-2.5-flash
 - **Appointment Scheduling**: Book and manage medical appointments
 
 ## Author
-**Jaimol Jaimol** - [GitHub](https://github.com/jaijoz)
+**Jaimol Jose** - [GitHub](https://github.com/jaijoz)
 
 ## License
-Copyright 2026 Jose Jaimol. All rights reserved.
-This project and its source code are proprietary. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited.
+Copyright 2026 Jaimol Jose. All rights reserved.
