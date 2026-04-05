@@ -1,155 +1,158 @@
-import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Send, ArrowLeft, Sparkles, User, Loader2 } from 'lucide-react'
-import { createSession, sendMessage } from '../services/api'
-import ReactMarkdown from 'react-markdown'
+import { useState, useEffect, useRef } from 'react';
+import { Send, Loader2 } from 'lucide-react';
+import Sidebar from '../components/Sidebar';
+import DocumentManager from '../components/DocumentManager';
+import { useAuth } from '../contexts/AuthContext';
+import { createSession, sendMessage } from '../services/api';
+import { saveChat, loadChats, deleteChat } from '../services/chatStorage';
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
 export default function Chat() {
-  const navigate = useNavigate()
-  const [messages, setMessages] = useState([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [sessionId, setSessionId] = useState(null)
-  const messagesEndRef = useRef(null)
-  const inputRef = useRef(null)
+  const { user } = useAuth();
+  const [chats, setChats] = useState([]);
+  const [activeChatId, setActiveChatId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showDocs, setShowDocs] = useState(false);
+  const endRef = useRef(null);
 
-  useEffect(() => {
-    initSession()
-  }, [])
+  useEffect(() => { loadChats(user?.uid).then(setChats); }, [user]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  async function initSession() {
+  async function startNewChat() {
     try {
-      const session = await createSession()
-      setSessionId(session.id)
-      setMessages([{
-        role: 'bot',
-        text: "Welcome to BabyOrbit! I am your AI parenting companion.\n\nAre you **expecting a baby** or do you already have a **little one**? I am here to help with everything from pregnancy guidance to newborn care, vaccinations, and more!"
-      }])
-    } catch (e) {
-      setMessages([{ role: 'bot', text: 'Welcome to BabyOrbit! How can I help you today?' }])
+      const sess = await createSession();
+      const id = genId();
+      setSessionId(sess.id || sess.session_id);
+      setActiveChatId(id);
+      setMessages([]);
+    } catch (err) {
+      const id = genId();
+      setActiveChatId(id);
+      setMessages([{ role: 'assistant', text: '⚠️ Could not start a new session. The service may be temporarily unavailable. Please try again in 30-60 seconds.' }]);
     }
+  }
+
+  function selectChat(id) {
+    const chat = chats.find(c => c.id === id);
+    if (chat) { setActiveChatId(id); setMessages(chat.messages || []); setSessionId(null); }
+  }
+
+  async function handleDeleteChat(id) {
+    await deleteChat(id, user?.uid);
+    setChats(prev => prev.filter(c => c.id !== id));
+    if (activeChatId === id) { setActiveChatId(null); setMessages([]); }
   }
 
   async function handleSend() {
-    if (!input.trim() || loading) return
-    const userMsg = input.trim()
-    setInput('')
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }])
-    setLoading(true)
+    if (!input.trim() || loading) return;
+    const text = input.trim();
+    setInput('');
 
-    try {
-      setMessages(prev => [...prev, { role: 'bot', text: '' }])
+    let sid = sessionId;
+    let chatId = activeChatId;
 
-      await sendMessage(
-        sessionId,
-        userMsg,
-        (partial) => {
-          setMessages(prev => {
-            const updated = [...prev]
-            updated[updated.length - 1] = { role: 'bot', text: partial }
-            return updated
-          })
-        },
-        (final) => {
-          setMessages(prev => {
-            const updated = [...prev]
-            updated[updated.length - 1] = { role: 'bot', text: final }
-            return updated
-          })
-          setLoading(false)
-        }
-      )
-    } catch (e) {
-      setMessages(prev => [...prev, { role: 'bot', text: 'Sorry, something went wrong. Please try again.' }])
-      setLoading(false)
+    if (!sid) {
+      try {
+        const sess = await createSession();
+        sid = sess.id || sess.session_id;
+        setSessionId(sid);
+      } catch {
+        if (!chatId) { chatId = genId(); setActiveChatId(chatId); }
+        const errMsgs = [...messages, { role: 'user', text }, { role: 'assistant', text: '⚠️ The AI service is temporarily busy. Please wait 30-60 seconds and try again. Your message was not lost!' }];
+        setMessages(errMsgs);
+        return;
+      }
     }
+    if (!chatId) { chatId = genId(); setActiveChatId(chatId); }
+
+    const userMsg = { role: 'user', text };
+    const updated = [...messages, userMsg];
+    setMessages(updated);
+    setLoading(true);
+
+    sendMessage(sid, text,
+      (partial) => setMessages([...updated, { role: 'assistant', text: partial }]),
+      (final) => {
+        const finalMsgs = [...updated, { role: 'assistant', text: final }];
+        setMessages(finalMsgs);
+        setLoading(false);
+        const title = text.length > 40 ? text.slice(0, 40) + '...' : text;
+        saveChat(chatId, title, finalMsgs, user?.uid);
+        setChats(prev => {
+          const filtered = prev.filter(c => c.id !== chatId);
+          return [{ id: chatId, title, messages: finalMsgs, updatedAt: Date.now() }, ...filtered];
+        });
+      }
+    );
   }
 
-  const quickPrompts = [
-    "My baby is 2 months old",
-    "What vaccines are due?",
-    "Is green poop normal?",
-    "Hospital bag checklist"
-  ]
-
   return (
-    <div className="min-h-screen flex flex-col max-w-3xl mx-auto">
-      <div className="bg-white/90 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-700 cursor-pointer">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="w-9 h-9 bg-gradient-to-br from-purple-600 to-teal-500 rounded-xl flex items-center justify-center">
-          <Sparkles className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h2 className="font-semibold text-gray-800 text-sm">BabyOrbit</h2>
-          <p className="text-xs text-gray-500">AI Parenting Companion</p>
-        </div>
-      </div>
+    <div style={{ display: 'flex', height: '100vh', background: '#030712', color: '#fff' }}>
+      <Sidebar chats={chats} activeChat={activeChatId} onSelectChat={selectChat} onNewChat={startNewChat} onDeleteChat={handleDeleteChat} onShowDocs={() => setShowDocs(true)} isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <DocumentManager isOpen={showDocs} onClose={() => setShowDocs(false)} />
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                msg.role === 'user' ? 'bg-purple-100' : 'bg-teal-100'
-              }`}>
-                {msg.role === 'user' ? <User className="w-4 h-4 text-purple-600" /> : <Sparkles className="w-4 h-4 text-teal-600" />}
-              </div>
-              <div className={msg.role === 'user' ? 'chat-bubble-user px-4 py-3' : 'chat-bubble-bot px-4 py-3'}>
-                {msg.text ? (
-                  <div className="text-sm leading-relaxed prose prose-sm max-w-none">
-                    <ReactMarkdown>{msg.text}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <div className="typing-indicator flex gap-1 py-2 px-1">
-                    <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
-                    <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
-                    <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
-                  </div>
-                )}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 16px' }}>
+          {messages.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
+              <span style={{ fontSize: '64px', marginBottom: '16px' }}>🌟</span>
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>Welcome to BabyOrbit</h2>
+              <p style={{ color: '#9ca3af', maxWidth: '28rem' }}>Your AI parenting companion. Ask about pregnancy, newborn care, vaccinations, or anything parenting-related.</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '24px', justifyContent: 'center' }}>
+                {['My baby was born last month', 'What vaccines are due at 2 months?', 'Safe sleep tips for newborns', 'Is it normal for baby to spit up?'].map(q => (
+                  <button key={q} onClick={() => setInput(q)}
+                    style={{ padding: '8px 12px', background: '#1f2937', border: '1px solid #374151', borderRadius: '8px', fontSize: '13px', color: '#d1d5db', cursor: 'pointer' }}
+                    onMouseOver={e => { e.target.style.background = '#374151'; e.target.style.color = '#fff'; }}
+                    onMouseOut={e => { e.target.style.background = '#1f2937'; e.target.style.color = '#d1d5db'; }}>
+                    {q}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {messages.length <= 1 && (
-        <div className="px-4 pb-2 flex flex-wrap gap-2">
-          {quickPrompts.map((p, i) => (
-            <button key={i} onClick={() => { setInput(p); inputRef.current?.focus() }}
-              className="text-xs bg-white/80 border border-purple-200 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-50 transition cursor-pointer">
-              {p}
-            </button>
-          ))}
+          ) : (
+            <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
+              {messages.map((msg, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: '12px' }}>
+                  <div style={{
+                    maxWidth: '80%', padding: '12px 16px', borderRadius: '16px', fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap',
+                    ...(msg.role === 'user'
+                      ? { background: '#4f46e5', color: '#fff', borderBottomRightRadius: '4px' }
+                      : { background: '#1f2937', color: '#f3f4f6', borderBottomLeftRadius: '4px' })
+                  }}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              {loading && messages[messages.length - 1]?.role !== 'assistant' && (
+                <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '12px' }}>
+                  <div style={{ background: '#1f2937', padding: '12px 16px', borderRadius: '16px', borderBottomLeftRadius: '4px' }}>
+                    <Loader2 className="animate-spin" size={18} style={{ color: '#818cf8' }} />
+                  </div>
+                </div>
+              )}
+              <div ref={endRef} />
+            </div>
+          )}
         </div>
-      )}
 
-      <div className="bg-white/90 backdrop-blur-md border-t border-gray-200 p-4 sticky bottom-0">
-        <div className="flex gap-2 items-end">
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSend()}
-            placeholder="Ask about your baby, pregnancy, vaccines..."
-            className="flex-1 bg-gray-100 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-400 transition"
-            disabled={loading}
-          />
-          <button
-            onClick={handleSend}
-            disabled={loading || !input.trim()}
-            className="bg-gradient-to-r from-purple-600 to-teal-500 text-white p-3 rounded-xl hover:shadow-lg transition disabled:opacity-50 cursor-pointer"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-          </button>
+        <div style={{ borderTop: '1px solid #1f2937', padding: '16px' }}>
+          <div style={{ maxWidth: '48rem', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '8px', background: '#1f2937', borderRadius: '12px', padding: '8px 12px' }}>
+            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+              placeholder="Ask about pregnancy, baby care, vaccines..."
+              style={{ flex: 1, background: 'transparent', color: '#fff', border: 'none', outline: 'none', fontSize: '14px' }} />
+            <button onClick={handleSend} disabled={loading || !input.trim()}
+              style={{ padding: '8px', borderRadius: '8px', background: loading || !input.trim() ? '#374151' : '#4f46e5', color: '#fff', border: 'none', cursor: loading || !input.trim() ? 'not-allowed' : 'pointer', opacity: loading || !input.trim() ? 0.3 : 1 }}>
+              <Send size={16} />
+            </button>
+          </div>
+          <p style={{ textAlign: 'center', fontSize: '11px', color: '#4b5563', marginTop: '8px' }}>BabyOrbit may make mistakes. Always consult your pediatrician.</p>
         </div>
       </div>
     </div>
-  )
+  );
 }
