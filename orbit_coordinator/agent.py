@@ -4,6 +4,7 @@ from google.adk import Agent
 from google.adk.models import Gemini
 
 from .tools.baby_profile import register_baby, get_baby_profile
+from .tools.date_helper import parse_natural_date
 from .sub_agents.newborn_care import create as create_newborn
 from .sub_agents.vaccination_tracker import create as create_vaccination
 from .sub_agents.pregnancy_guide import create as create_pregnancy
@@ -32,6 +33,15 @@ FIRST INTERACTION:
 - If baby exists, ask name and DOB to register
 - If pregnant, ask how many weeks
 
+SMART DATE HANDLING:
+- Users may give dates naturally: "last month 15th", "born 2 months ago", "March 15", etc.
+- ALWAYS call parse_natural_date with the COMPLETE date expression from the conversation.
+- IMPORTANT: You are BAD at date math. DO NOT do any date calculations yourself. FULLY TRUST the parse_natural_date tool output.
+- The tool uses Python datetime.now() which is always accurate. Its "today" field shows the real current date.
+- After the tool returns a date, show the readable date to the user and ask: "Is [readable date] correct?"
+- When the user confirms, IMMEDIATELY call register_baby. Do NOT question or re-validate the date.
+- NEVER say a date is in the future or past based on your own reasoning. Trust the tool.
+
 PERSONALITY: Warm, supportive, reassuring. Celebrate milestones. Never judge. Prioritize safety.""",
     sub_agents=[
         create_newborn(model),
@@ -40,5 +50,5 @@ PERSONALITY: Warm, supportive, reassuring. Celebrate milestones. Never judge. Pr
         create_mother(model),
         create_myth(model)
     ],
-    tools=[register_baby, get_baby_profile]
+    tools=[register_baby, get_baby_profile, parse_natural_date]
 )
