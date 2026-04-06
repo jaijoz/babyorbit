@@ -1,0 +1,28 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: 'frontend'
+    args: 
+      - 'build'
+      - '--build-arg'
+      - 'VITE_API_URL=$_VITE_API_URL'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/babyorbit-web:$BUILD_ID'
+      - '.'
+
+  # Push the container image to the registry before deploying
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/babyorbit-web:$BUILD_ID']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'babyorbit-web'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/babyorbit-web:$BUILD_ID'
+      - '--region'
+      - 'us-east4'
+      - '--allow-unauthenticated'
