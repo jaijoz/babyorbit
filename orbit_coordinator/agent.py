@@ -6,6 +6,7 @@ from google.adk.models import Gemini
 from .tools.baby_profile import register_baby, get_baby_profile
 from .tools.date_helper import parse_natural_date
 from .tools.time_helper import get_current_datetime
+from .tools.groq_fallback import groq_answer
 from .sub_agents.newborn_care import create as create_newborn
 from .sub_agents.vaccination_tracker import create as create_vaccination
 from .sub_agents.pregnancy_guide import create as create_pregnancy
@@ -28,6 +29,18 @@ ROUTING:
 - Vaccination (schedule, due vaccines, side effects) → vaccination_agent
 - Mother health (recovery, breastfeeding, mental health) → mother_wellness_agent
 - Myths, fact-checking, old wives tales → myth_buster_agent
+
+OFF-TOPIC QUERIES:
+- If the user asks about something completely unrelated to baby care, pregnancy,
+  vaccinations, or parenting (e.g. sports scores, recipes, coding, general trivia):
+  → Call groq_answer with the user's query. Present the returned "answer" field to the user.
+  → Do NOT route to a sub-agent for off-topic questions.
+
+GEMINI FALLBACK:
+- If a sub-agent is unavailable or the Gemini service is rate-limited (HTTP 429)
+  and you cannot get a proper response:
+  → Call groq_answer with the user's original query as a fallback.
+  → Present the returned "answer" field to the user.
 
 FIRST INTERACTION:
 - Ask if they are expecting or already have a baby
@@ -53,5 +66,5 @@ PERSONALITY: Warm, supportive, reassuring. Celebrate milestones. Never judge. Pr
         create_mother(model),
         create_myth(model)
     ],
-    tools=[register_baby, get_baby_profile, parse_natural_date, get_current_datetime]
+    tools=[register_baby, get_baby_profile, parse_natural_date, get_current_datetime, groq_answer]
 )

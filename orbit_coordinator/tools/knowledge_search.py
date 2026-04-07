@@ -1,4 +1,5 @@
 import json
+import os
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
@@ -90,19 +91,90 @@ def _wiki_search(query: str) -> dict | None:
     }
 
 
+def _groq_search(query: str) -> dict | None:
+    """
+    Use Groq LLM to generate a knowledge snippet when Wikipedia is unavailable
+    or returns no results (HTTP 429, network error, empty response, etc.).
+    Returns None if GROQ_API_KEY is not set or the call fails.
+    """
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        from groq import Groq  # lazy import – optional dependency
+
+        client = Groq(api_key=api_key)
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a knowledgeable parenting and baby care assistant. "
+                        "Provide a concise, evidence-based summary about the given topic. "
+                        "Focus on WHO, AAP, CDC, and IAP guidelines. "
+                        "Keep the response factual and under 300 words."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Provide key information about: {query}",
+                },
+            ],
+            max_tokens=500,
+            temperature=0.3,
+        )
+
+        content = (response.choices[0].message.content or "").strip()
+        if not content:
+            return None
+
+        return {
+            "status": "success",
+            "source_type": "external",
+            "provider": "groq",
+            "query": query,
+            "results": [
+                {
+                    "type": "article",
+                    "title": f"BabyOrbit Knowledge: {query}",
+                    "snippet": content,
+                    "source": "groq_llm",
+                }
+            ],
+        }
+    except Exception:
+        return None
+
+
 def search_parenting_knowledge(query: str) -> dict:
     """
-    Search parenting info from free external source first (Wikipedia),
-    then fallback to local BabyOrbit seed data if unavailable/not found.
+    Search parenting info with a three-tier fallback chain:
+      1. Wikipedia  – free external source, preferred
+      2. Groq LLM   – when Wikipedia is unavailable or returns HTTP 429 / no results
+      3. Local seed – BabyOrbit bundled WHO/AAP/CDC data, always available
     """
     if not query or not query.strip():
         return {"status": "error", "message": "query is required"}
 
+    q = query.strip()
+
+    # --- Tier 1: Wikipedia ---
     try:
-        external = _wiki_search(query.strip())
+        external = _wiki_search(q)
         if external and external.get("results"):
             return external
     except (URLError, HTTPError, TimeoutError, Exception):
         pass
 
-    return _search_local_seed(query.strip())
+    # --- Tier 2: Groq LLM (fallback when Wikipedia fails or is rate-limited) ---
+    try:
+        groq_result = _groq_search(q)
+        if groq_result and groq_result.get("results"):
+            return groq_result
+    except Exception:
+        pass
+
+    # --- Tier 3: Local seed data ---
+    return _search_local_seed(q)
