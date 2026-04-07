@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from google.adk import Agent
 from google.adk.models import Gemini
@@ -13,7 +14,7 @@ from .sub_agents.pregnancy_guide import create as create_pregnancy
 from .sub_agents.mother_wellness import create as create_mother
 from .sub_agents.myth_buster import create as create_myth
 
-load_dotenv()
+load_dotenv(Path(__file__).parent / ".env", override=True)
 
 model = Gemini(model=os.getenv("MODEL"))
 
