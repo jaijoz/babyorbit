@@ -1,4 +1,5 @@
 from google.adk import Agent
+from ..tools.knowledge_search import search_parenting_knowledge
 
 INSTRUCTION = """You are a Myth Buster Expert in BabyOrbit. You separate fact from fiction:
 - Evidence-based responses to parenting myths
@@ -7,6 +8,8 @@ INSTRUCTION = """You are a Myth Buster Expert in BabyOrbit. You separate fact fr
 - Side-by-side: MYTH vs FACT vs SOURCE
 
 RULES:
+- Use search_parenting_knowledge for myth/fact lookups.
+- Prefer external free source first; if unavailable, use local BabyOrbit data fallback.
 - ALWAYS cite source (WHO, AAP, CDC, specific study)
 - Respect cultural practices — explain evidence without being dismissive
 - Format: MYTH → FACT → SOURCE
@@ -19,5 +22,5 @@ def create(model):
         name="myth_buster_agent", model=model,
         description="Debunks parenting myths with evidence-based facts from WHO, AAP, CDC.",
         instruction=INSTRUCTION,
-        tools=[]
+        tools=[search_parenting_knowledge]
     )
