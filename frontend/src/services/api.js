@@ -1,5 +1,38 @@
 const API_BASE = '/api';
 
+function extractTextFromEvent(data) {
+  const direct = data?.content?.parts?.[0]?.text;
+  if (direct) return direct;
+
+  const candidateText = data?.candidate?.content?.parts?.[0]?.text;
+  if (candidateText) return candidateText;
+
+  const chunkText = data?.partial_response?.content?.parts?.[0]?.text;
+  if (chunkText) return chunkText;
+
+  if (typeof data?.text === 'string' && data.text.trim()) return data.text;
+
+  return '';
+}
+
+function parseSseBlock(block) {
+  const dataLines = block
+    .split('\n')
+    .filter(line => line.startsWith('data:'))
+    .map(line => line.replace(/^data:\s?/, ''));
+
+  if (dataLines.length === 0) return null;
+
+  const payload = dataLines.join('\n').trim();
+  if (!payload || payload === '[DONE]') return null;
+
+  try {
+    return JSON.parse(payload);
+  } catch {
+    return null;
+  }
+}
+
 export async function createSession() {
   const res = await fetch(`${API_BASE}/apps/orbit_coordinator/users/user/sessions`, {
     method: 'POST',
@@ -33,21 +66,41 @@ export function sendMessage(sessionId, message, onPartial, onComplete) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullText = '';
+      let buffer = '';
 
       function read() {
         reader.read().then(({ done, value }) => {
-          if (done) { onComplete(fullText || 'No response received.'); return; }
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                const text = data?.content?.parts?.[0]?.text;
-                if (text) { fullText += text; onPartial(fullText); }
-              } catch {}
+          if (done) {
+            if (buffer.trim()) {
+              const blocks = buffer.split('\n\n');
+              for (const block of blocks) {
+                const data = parseSseBlock(block);
+                if (!data) continue;
+                const text = extractTextFromEvent(data);
+                if (text) {
+                  fullText += text;
+                  onPartial(fullText);
+                }
+              }
+            }
+            onComplete(fullText || 'No response received.');
+            return;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          for (const block of blocks) {
+            const data = parseSseBlock(block);
+            if (!data) continue;
+            const text = extractTextFromEvent(data);
+            if (text) {
+              fullText += text;
+              onPartial(fullText);
             }
           }
+
           read();
         }).catch(() => {
           if (fullText) onComplete(fullText);

@@ -25,4 +25,6 @@ steps:
       - 'gcr.io/$PROJECT_ID/babyorbit-web:$BUILD_ID'
       - '--region'
       - 'us-east4'
+      - '--port'
+      - '8080'
       - '--allow-unauthenticated'

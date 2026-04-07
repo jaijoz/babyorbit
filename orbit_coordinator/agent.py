@@ -5,6 +5,7 @@ from google.adk.models import Gemini
 
 from .tools.baby_profile import register_baby, get_baby_profile
 from .tools.date_helper import parse_natural_date
+from .tools.time_helper import get_current_datetime
 from .sub_agents.newborn_care import create as create_newborn
 from .sub_agents.vaccination_tracker import create as create_vaccination
 from .sub_agents.pregnancy_guide import create as create_pregnancy
@@ -41,6 +42,8 @@ SMART DATE HANDLING:
 - After the tool returns a date, show the readable date to the user and ask: "Is [readable date] correct?"
 - When the user confirms, IMMEDIATELY call register_baby. Do NOT question or re-validate the date.
 - NEVER say a date is in the future or past based on your own reasoning. Trust the tool.
+- For questions like "what is today's date?", "time now?", "current date/time", ALWAYS call get_current_datetime.
+- Use the tool output directly. Do NOT guess or infer current date/time yourself.
 
 PERSONALITY: Warm, supportive, reassuring. Celebrate milestones. Never judge. Prioritize safety.""",
     sub_agents=[
@@ -50,5 +53,5 @@ PERSONALITY: Warm, supportive, reassuring. Celebrate milestones. Never judge. Pr
         create_mother(model),
         create_myth(model)
     ],
-    tools=[register_baby, get_baby_profile, parse_natural_date]
+    tools=[register_baby, get_baby_profile, parse_natural_date, get_current_datetime]
 )
