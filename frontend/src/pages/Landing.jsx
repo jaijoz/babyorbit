@@ -22,20 +22,21 @@ export default function Landing() {
         <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-700 to-teal-600 bg-clip-text text-transparent mb-3">
           BabyOrbit
         </h1>
-        <p className="text-xl text-gray-600 max-w-md mx-auto">
+        <p style={{ color: 'var(--text-secondary)' }} className="text-xl max-w-md mx-auto">
           Your parenting universe, organized.
         </p>
-        <p className="text-sm text-gray-500 mt-2">
+        <p style={{ color: 'var(--text-muted)' }} className="text-sm mt-2">
           AI-powered companion from bump to baby
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full mb-10">
         {features.map((f, i) => (
-          <div key={i} className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-sm hover:shadow-md transition-all border border-white/50">
+          <div key={i} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', transition: 'background 0.2s ease' }}
+            className="backdrop-blur-sm rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
             <div className="text-purple-600 mb-3">{f.icon}</div>
-            <h3 className="font-semibold text-gray-800 mb-1">{f.title}</h3>
-            <p className="text-sm text-gray-500">{f.desc}</p>
+            <h3 style={{ color: 'var(--text-primary)' }} className="font-semibold mb-1">{f.title}</h3>
+            <p style={{ color: 'var(--text-secondary)' }} className="text-sm">{f.desc}</p>
           </div>
         ))}
       </div>
@@ -47,7 +48,7 @@ export default function Landing() {
         Start Your Journey
       </button>
 
-      <p className="text-xs text-gray-400 mt-6">
+      <p style={{ color: 'var(--text-muted)' }} className="text-xs mt-6">
         Powered by Google Gemini AI | Evidence-based guidance from WHO, AAP and CDC
       </p>
     </div>

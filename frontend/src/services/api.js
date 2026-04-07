@@ -44,13 +44,24 @@ export async function createSession() {
   return res.json();
 }
 
-export function sendMessage(sessionId, message, onPartial, onComplete) {
+/**
+ * Send a message, optionally with file parts.
+ * fileParts: array of ADK-compatible part objects, e.g.
+ *   { inline_data: { mime_type: 'image/png', data: '<base64>' } }
+ *   { text: '[File: report.txt]\n<content>' }
+ */
+export function sendMessage(sessionId, message, fileParts = [], onPartial, onComplete) {
   const url = `${API_BASE}/run_sse`;
+
+  const parts = [];
+  if (message) parts.push({ text: message });
+  parts.push(...fileParts);
+
   const body = JSON.stringify({
     app_name: 'orbit_coordinator',
     user_id: 'user',
     session_id: sessionId,
-    new_message: { role: 'user', parts: [{ text: message }] }
+    new_message: { role: 'user', parts }
   });
 
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
@@ -77,10 +88,7 @@ export function sendMessage(sessionId, message, onPartial, onComplete) {
                 const data = parseSseBlock(block);
                 if (!data) continue;
                 const text = extractTextFromEvent(data);
-                if (text) {
-                  fullText += text;
-                  onPartial(fullText);
-                }
+                if (text) { fullText += text; onPartial(fullText); }
               }
             }
             onComplete(fullText || 'No response received.');
@@ -95,10 +103,7 @@ export function sendMessage(sessionId, message, onPartial, onComplete) {
             const data = parseSseBlock(block);
             if (!data) continue;
             const text = extractTextFromEvent(data);
-            if (text) {
-              fullText += text;
-              onPartial(fullText);
-            }
+            if (text) { fullText += text; onPartial(fullText); }
           }
 
           read();
