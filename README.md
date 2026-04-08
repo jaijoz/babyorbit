@@ -7,7 +7,6 @@ From bump to baby - evidence-based guidance at your fingertips.
 - **Frontend**: https://babyorbit-web-1091443480665.us-east4.run.app
 - **Backend API**: https://babyorbit-api-1091443480665.us-east4.run.app
 - **Demo Video**: https://drive.google.com/file/d/1kgcR64SRnqOxS_FynuEx0rwWYghI-fp2/view?usp=drivesdk
-- **Demo Video**: https://github.com/jaijoz/babyorbit/raw/main/frontend/src/assets/babyorbitdemo.mp4
 
 ## What It Does
 BabyOrbit uses 5 specialized AI agents orchestrated by a coordinator:
